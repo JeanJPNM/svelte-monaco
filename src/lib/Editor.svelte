@@ -1,134 +1,197 @@
 <script context="module" lang="ts">
 	interface EventMap {
-		change: monaco.editor.IModelContentChangedEvent & {
-			value: string;
+		change: {
+			text: string;
+			event: monaco.editor.IModelContentChangedEvent;
+		};
+		validate: {
+			markers: monaco.editor.IMarker[];
+		};
+		mount: {
+			editor: monaco.editor.IStandaloneCodeEditor;
+			monaco: Monaco;
 		};
 	}
+
+	type Options = monaco.editor.IStandaloneEditorConstructionOptions;
+
+	const viewStates = new Map<string | undefined, monaco.editor.ICodeEditorViewState>();
 </script>
 
 <script lang="ts">
-	import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
-	import { createEventDispatcher, onDestroy } from 'svelte';
-	import { get, writable } from 'svelte/store';
+	import type * as monaco from 'monaco-editor';
 
-	export let width: string = '100%';
-	export let height: string = '100%';
-	export let value: string = '';
-	export let language = 'javascript';
-	export let theme: string | null = null;
-	export let options: monaco.editor.IStandaloneEditorConstructionOptions = {};
+	import loader from '@monaco-editor/loader';
+	import { createEventDispatcher, onMount } from 'svelte';
+	import type { Monaco } from './types';
+	import { getOrCreateModel, writablePrevious } from '../utils';
+	import { multiModeStore } from '../stores/multi_mode';
+
+	export let value = '';
+	export let language: string;
+	export let path: string | undefined = undefined;
+	export let theme = 'light';
+	export let line: number | undefined = undefined;
+	export let options: Options = {};
 	export let overrideServices: monaco.editor.IEditorOverrideServices = {};
-	let className: string | null = null;
+	export let saveViewState = true;
+	export let keepCurrentModel = false;
+	export let width = '100%';
+	export let height = '100%';
+	let className = '';
 	export { className as class };
+	export let wrapperProps: object = {};
 
 	const dispatch = createEventDispatcher<EventMap>();
 
-	let allowChangeDispatch = true;
+	let container: HTMLDivElement;
+
+	let monaco: Monaco;
 	let editor: monaco.editor.IStandaloneCodeEditor;
+	let subscription: monaco.IDisposable | undefined;
 
-	let changeSubscription: monaco.IDisposable;
+	let isEditorReady = false;
+	$: isMonacoMounting = !monaco;
+	const previousPath = writablePrevious(path);
+	$: $previousPath = path;
 
-	const layoutWatcher = createWatcher([width, height], ([prevWidth, prevHeight]) => {
-		if (height === prevHeight && width === prevWidth) return false;
-		editor.layout();
-		return true;
-	});
+	const valueStore = multiModeStore(value, {
+		internal(next) {
+			value = next;
+		},
+		external(next) {
+			if (editor.getOption(monaco.editor.EditorOption.readOnly)) {
+				editor.setValue(next);
+				return;
+			}
 
-	const valueWatcher = createWatcher(value, (prevValue) => {
-		if (value === prevValue) return false;
-		const model = editor.getModel();
-		if (!model) return false;
-		allowChangeDispatch = false;
-		editor.pushUndoStop();
-		//@ts-expect-error
-		model.pushEditOperations(
-			[],
-			[
+			editor.executeEdits('', [
 				{
-					range: model.getFullModelRange(),
-					text: value
+					range: editor.getModel()!.getFullModelRange(),
+					text: next,
+					forceMoveMarkers: true
 				}
-			]
-		);
-		editor.pushUndoStop();
-		allowChangeDispatch = true;
-		return true;
+			]);
+
+			editor.pushUndoStop();
+		}
 	});
 
-	const languageWatcher = createWatcher(language, (prevLanguage) => {
-		const model = editor.getModel();
-		if (!model || language === prevLanguage) return false;
-		monaco.editor.setModelLanguage(model, language);
-		return true;
+	onMount(() => {
+		const cancellable = loader.init();
+
+		cancellable
+			.then((m) => (monaco = m))
+			.catch((error) => {
+				if (error?.type !== 'cancellation') {
+					console.error('Monaco initialization: error:', error);
+				}
+			});
+
+		return () => (editor ? disposeEditor() : cancellable.cancel());
 	});
 
-	const themeWatcher = createWatcher(theme, (prevTheme) => {
-		if (!theme || theme === prevTheme) return false;
+	$: if (isEditorReady) {
+		console.log('syncing path!');
+		syncPath($previousPath);
+	}
+	$: if (isEditorReady) syncOptions(options);
+	$: if (isEditorReady) syncLanguage(language);
+	$: if (isEditorReady) syncLine(line);
+	$: if (isEditorReady) syncTheme(theme);
+	$: if (isEditorReady) valueStore.set('external', value);
+	$: if (!isEditorReady && !isMonacoMounting) createEditor();
 
+	function syncPath(...deps: unknown[]) {
+		const model = getOrCreateModel(monaco, value, language, $previousPath);
+
+		if (model !== editor.getModel()) {
+			saveViewState && viewStates.set($previousPath, editor.saveViewState()!);
+			editor.setModel(model);
+			saveViewState && editor.restoreViewState(viewStates.get($previousPath)!);
+		}
+	}
+
+	function syncOptions(...deps: unknown[]) {
+		editor.updateOptions(options);
+	}
+
+	function syncLanguage(...deps: unknown[]) {
+		monaco.editor.setModelLanguage(editor.getModel()!, language);
+	}
+
+	function syncLine(...deps: unknown[]) {
+		// reason for undefined check: https://github.com/suren-atoyan/monaco-react/pull/188
+		if (line !== undefined) {
+			editor.revealLine(line);
+		}
+	}
+
+	function syncTheme(...deps: unknown[]) {
 		monaco.editor.setTheme(theme);
-		return true;
-	});
+	}
 
-	const optionsWatcher = createWatcher(options, (prevOptions) => {
-		if (options === prevOptions) return false;
-		// https://github.com/microsoft/monaco-editor/issues/2027
-		const { model: _model, ...optionsWithoutModel } = options;
-		editor.updateOptions({
-			...(className ? { extraEditorClassName: className } : {}),
-			...optionsWithoutModel
-		});
-		return true;
-	});
+	function createEditor() {
+		const defaultModel = getOrCreateModel(monaco, value, language, path);
 
-	$: editor && layoutWatcher([width, height]);
-	$: editor && valueWatcher(value);
-	$: editor && languageWatcher(language);
-	$: editor && themeWatcher(theme);
-	$: editor && optionsWatcher(options);
-
-	// only runs when the editor changes
-	$: onEditorMount(editor);
-
-	onDestroy(() => {
-		changeSubscription?.dispose();
-		editor.dispose();
-		const model = editor.getModel();
-		model?.dispose();
-	});
-
-	function applyEditor(node: HTMLElement) {
 		editor = monaco.editor.create(
-			node,
+			container,
 			{
-				value,
-				language,
-				...(className ? { extraEditorClassName: className } : {}),
-				...options,
-				...(theme ? { theme } : {})
+				model: defaultModel,
+				automaticLayout: true,
+				...options
 			},
 			overrideServices
 		);
-	}
 
-	function onEditorMount(editor: monaco.editor.IStandaloneCodeEditor) {
-		if (!editor) return;
-		changeSubscription?.dispose();
-		changeSubscription = editor.onDidChangeModelContent((e) => {
-			if (allowChangeDispatch) {
-				value = editor.getValue();
-				dispatch('change', { ...e, value });
-			}
+		saveViewState && editor.restoreViewState(viewStates.get(path)!);
+
+		monaco.editor.setTheme(theme);
+
+		subscription = editor.onDidChangeModelContent((event) => {
+			const text = editor.getValue();
+
+			if (value === text) return;
+
+			valueStore.set('internal', text);
+
+			dispatch('change', {
+				text,
+				event
+			});
 		});
+
+		isEditorReady = true;
 	}
+	function disposeEditor() {
+		subscription?.dispose();
 
-	function createWatcher<T>(init: T, effect: (prev: T) => boolean) {
-		const store = writable(init);
-
-		return (value: T) => {
-			const valid = effect(get(store));
-			if (valid) store.set(value);
-		};
+		if (keepCurrentModel) {
+			if (saveViewState) viewStates.set(path, editor.saveViewState()!);
+		} else {
+			editor.getModel()?.dispose();
+		}
+		editor.dispose();
 	}
 </script>
 
-<div class="svelte-monaco-editor-container" use:applyEditor style:height style:width />
+{#if !isEditorReady}
+	<slot name="loading">Loading...</slot>
+{/if}
+
+<section class="wrapper" {...wrapperProps} style:width style:height>
+	<div bind:this={container} class={className} class:container />
+</section>
+
+<slot {monaco} {editor} />
+
+<style>
+	.wrapper {
+		display: flex;
+		position: relative;
+		text-align: initial;
+	}
+	.container {
+		width: 100%;
+	}
+</style>
