@@ -100,10 +100,7 @@
 		return () => (editor ? disposeEditor() : cancellable.cancel());
 	});
 
-	$: if (isEditorReady) {
-		console.log('syncing path!');
-		syncPath($previousPath);
-	}
+	$: if (isEditorReady) syncPath($previousPath);
 	$: if (isEditorReady) syncOptions(options);
 	$: if (isEditorReady) syncLanguage(language);
 	$: if (isEditorReady) syncLine(line);
