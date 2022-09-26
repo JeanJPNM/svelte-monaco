@@ -1,16 +1,24 @@
 <script context="module" lang="ts">
+	/** Happens when the content of the underlying editor changes*/
+	export interface EditorChangeEvent {
+		text: string;
+		source: monaco.editor.IModelContentChangedEvent;
+	}
+
+	export interface EditorValidateEvent {
+		markers: monaco.editor.IMarker[];
+	}
+
+	/** Happens when the monaco editor is loaded and the editor is configured*/
+	export interface EditorMountEvent {
+		editor: monaco.editor.IStandaloneCodeEditor;
+		monaco: Monaco;
+	}
+
 	interface EventMap {
-		change: {
-			text: string;
-			event: monaco.editor.IModelContentChangedEvent;
-		};
-		validate: {
-			markers: monaco.editor.IMarker[];
-		};
-		mount: {
-			editor: monaco.editor.IStandaloneCodeEditor;
-			monaco: Monaco;
-		};
+		change: EditorChangeEvent;
+		validate: EditorValidateEvent;
+		mount: EditorMountEvent;
 	}
 
 	type Options = monaco.editor.IStandaloneEditorConstructionOptions;
@@ -48,7 +56,8 @@
 
 	let monaco: Monaco;
 	let editor: monaco.editor.IStandaloneCodeEditor;
-	let subscription: monaco.IDisposable | undefined;
+	let modelContentSubscription: monaco.IDisposable | undefined;
+	let markerSubscription: monaco.IDisposable | undefined;
 
 	let isEditorReady = false;
 	$: isMonacoMounting = !monaco;
@@ -106,9 +115,9 @@
 		const model = getOrCreateModel(monaco, value, language, $previousPath);
 
 		if (model !== editor.getModel()) {
-			saveViewState && viewStates.set($previousPath, editor.saveViewState()!);
+			if (saveViewState) viewStates.set($previousPath, editor.saveViewState()!);
 			editor.setModel(model);
-			saveViewState && editor.restoreViewState(viewStates.get($previousPath)!);
+			if (saveViewState) editor.restoreViewState(viewStates.get($previousPath)!);
 		}
 	}
 
@@ -148,7 +157,7 @@
 
 		monaco.editor.setTheme(theme);
 
-		subscription = editor.onDidChangeModelContent((event) => {
+		modelContentSubscription = editor.onDidChangeModelContent((event) => {
 			const text = editor.getValue();
 
 			if (value === text) return;
@@ -157,14 +166,35 @@
 
 			dispatch('change', {
 				text,
-				event
+				source: event
+			});
+		});
+
+		markerSubscription = monaco.editor.onDidChangeMarkers((uris) => {
+			const editorUri = editor.getModel()?.uri;
+
+			if (!editorUri) return;
+			const hasMarkerChanges = uris.find((uri) => uri.path === editorUri.path);
+
+			if (!hasMarkerChanges) return;
+
+			const markers = monaco.editor.getModelMarkers({ resource: editorUri });
+
+			dispatch('validate', {
+				markers
 			});
 		});
 
 		isEditorReady = true;
+
+		dispatch('mount', {
+			editor,
+			monaco
+		});
 	}
 	function disposeEditor() {
-		subscription?.dispose();
+		modelContentSubscription?.dispose();
+		markerSubscription?.dispose();
 
 		if (keepCurrentModel) {
 			if (saveViewState) viewStates.set(path, editor.saveViewState()!);
