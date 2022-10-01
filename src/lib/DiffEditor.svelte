@@ -4,8 +4,15 @@
 		monaco: Monaco;
 	}
 
+	export interface DiffEditorChangeEvent {
+		text: string;
+		source: monaco.editor.IModelContentChangedEvent;
+	}
+
 	interface EventMap {
 		mount: DiffEditorMountEvent;
+		originalChange: DiffEditorChangeEvent;
+		modifiedChange: DiffEditorChangeEvent;
 	}
 
 	type Options = monaco.editor.IDiffEditorConstructionOptions;
@@ -101,6 +108,9 @@
 		}
 	});
 
+	let originalTextSubscription: monaco.IDisposable | undefined;
+	let modifiedTextSubscription: monaco.IDisposable | undefined;
+
 	$: if (isEditorReady) originalValueStore.set('external', original);
 	$: if (isEditorReady) modifiedValueStore.set('external', modified);
 	$: if (isEditorReady) syncOptions(options);
@@ -146,6 +156,32 @@
 		editor.setModel({ original: originalModel, modified: modifiedModel });
 		monaco.editor.setTheme(theme);
 
+		originalTextSubscription = originalModel.onDidChangeContent((e) => {
+			const text = originalModel.getValue();
+
+			if (original === text) return;
+
+			originalValueStore.set('internal', text);
+
+			dispatch('originalChange', {
+				text,
+				source: e
+			});
+		});
+
+		modifiedTextSubscription = modifiedModel.onDidChangeContent((e) => {
+			const text = modifiedModel.getValue();
+
+			if (modified === text) return;
+
+			modifiedValueStore.set('internal', text);
+
+			dispatch('modifiedChange', {
+				text,
+				source: e
+			});
+		});
+
 		isEditorReady = true;
 
 		dispatch('mount', {
@@ -156,6 +192,9 @@
 
 	function disposeEditor() {
 		const models = editor.getModel()!;
+
+		originalTextSubscription?.dispose();
+		modifiedTextSubscription?.dispose();
 
 		if (!keepCurrentOriginalModel) {
 			models.original?.dispose();
