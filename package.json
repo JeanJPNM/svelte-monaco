@@ -1,5 +1,5 @@
 {
-	"name": "svelte-monaco-editor",
+	"name": "svelte-monaco",
 	"version": "0.0.1",
 	"scripts": {
 		"dev": "vite dev",
