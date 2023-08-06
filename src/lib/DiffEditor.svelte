@@ -204,7 +204,7 @@
 {/if}
 
 <section class="wrapper" {...wrapperProps} style:width style:height>
-	<div bind:this={container} class={className} class:container />
+	<div bind:this={container} class="{className} container" />
 </section>
 
 <style>
