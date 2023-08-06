@@ -1,4 +1,5 @@
 import type { Monaco } from '$lib/types';
+import type * as monaco from 'monaco-editor';
 import { writable, type Writable } from 'svelte/store';
 
 export function writablePrevious<T>(init: T): Writable<T> {
@@ -18,13 +19,11 @@ export function writablePrevious<T>(init: T): Writable<T> {
 	};
 }
 
-export function getOrCreateModel(
-	monaco: Monaco,
-	value: string,
-	language: string | undefined,
-	path?: string
-) {
-	return getModel(monaco, path) || createModel(monaco, value, language, path);
+export function getOrCreateModel(monaco: Monaco, value: string, language?: string, path?: string) {
+	let model: monaco.editor.ITextModel | null;
+	if (path !== undefined) model = getModel(monaco, path);
+	model ??= createModel(monaco, value, language, path);
+	return model;
 }
 
 export function getModel(monaco: Monaco, path: string) {
