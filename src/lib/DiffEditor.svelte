@@ -20,11 +20,11 @@
 
 <script lang="ts">
 	import type * as monaco from 'monaco-editor';
-	import loader from '@monaco-editor/loader';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onDestroy } from 'svelte';
 	import type { Monaco } from './types';
 	import { getOrCreateModel, writablePrevious } from '../utils';
 	import { multiModeStore } from '../stores/multi_mode';
+	import { useMonaco } from './use_monaco';
 
 	export let original = '';
 	export let modified = '';
@@ -49,26 +49,15 @@
 
 	const dispatch = createEventDispatcher<EventMap>();
 
-	let container: HTMLDivElement;
+	let container: HTMLDivElement | undefined;
 
-	let monaco: Monaco;
+	const monaco = useMonaco();
 	let editor: monaco.editor.IStandaloneDiffEditor;
 
 	let isEditorReady = false;
-	$: isMonacoMounting = !monaco;
 
-	onMount(() => {
-		const cancellable = loader.init();
-
-		cancellable
-			.then((m) => (monaco = m))
-			.catch((error) => {
-				if (error?.type !== 'cancellation') {
-					console.error('Monaco initialization: error:', error);
-				}
-			});
-
-		return () => (editor ? disposeEditor() : cancellable.cancel());
+	onDestroy(() => {
+		if (editor) disposeEditor();
 	});
 
 	const previousPath = writablePrevious(originalModelPath);
@@ -88,8 +77,9 @@
 			modified = next;
 		},
 		external(next) {
+			if (!$monaco) return;
 			const modifiedEditor = editor.getModifiedEditor();
-			if (modifiedEditor.getOption(monaco.editor.EditorOption.readOnly)) {
+			if (modifiedEditor.getOption($monaco.editor.EditorOption.readOnly)) {
 				modifiedEditor.setValue(next);
 				return;
 			}
@@ -116,24 +106,25 @@
 	$: if (isEditorReady) syncOptions(options);
 	$: if (isEditorReady) syncLanguage(language, originalLanguage, modifiedLanguage);
 	$: if (isEditorReady) syncTheme(theme);
-	$: if (!isEditorReady && !isMonacoMounting) createEditor();
+	$: if (!isEditorReady && $monaco && container) createEditor($monaco, container);
 
 	function syncOptions(...deps: unknown[]) {
 		editor.updateOptions(options);
 	}
 
 	function syncLanguage(...deps: unknown[]) {
+		if (!$monaco) return;
 		const { original, modified } = editor.getModel()!;
 
-		monaco.editor.setModelLanguage(original, originalLanguage || language!);
-		monaco.editor.setModelLanguage(modified, modifiedLanguage || language!);
+		$monaco.editor.setModelLanguage(original, originalLanguage || language!);
+		$monaco.editor.setModelLanguage(modified, modifiedLanguage || language!);
 	}
 
 	function syncTheme(...deps: unknown[]) {
-		monaco.editor.setTheme(theme);
+		$monaco?.editor.setTheme(theme);
 	}
 
-	function createEditor() {
+	function createEditor(monaco: Monaco, container: HTMLElement) {
 		editor = monaco.editor.createDiffEditor(container, {
 			automaticLayout: true,
 			...options

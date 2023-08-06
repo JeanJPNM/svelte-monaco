@@ -28,12 +28,11 @@
 
 <script lang="ts">
 	import type * as monaco from 'monaco-editor';
-
-	import loader from '@monaco-editor/loader';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onDestroy } from 'svelte';
 	import type { Monaco } from './types';
 	import { getOrCreateModel, writablePrevious } from '../utils';
 	import { multiModeStore } from '../stores/multi_mode';
+	import { useMonaco } from './use_monaco';
 
 	export let value = '';
 	export let language: string;
@@ -52,15 +51,15 @@
 
 	const dispatch = createEventDispatcher<EventMap>();
 
-	let container: HTMLDivElement;
+	let container: HTMLDivElement | undefined;
 
-	let monaco: Monaco;
+	const monaco = useMonaco();
+
 	let editor: monaco.editor.IStandaloneCodeEditor;
 	let modelContentSubscription: monaco.IDisposable | undefined;
 	let markerSubscription: monaco.IDisposable | undefined;
 
 	let isEditorReady = false;
-	$: isMonacoMounting = !monaco;
 	const previousPath = writablePrevious(path);
 	$: $previousPath = path;
 
@@ -69,7 +68,8 @@
 			value = next;
 		},
 		external(next) {
-			if (editor.getOption(monaco.editor.EditorOption.readOnly)) {
+			if (!$monaco) return;
+			if (editor.getOption($monaco.editor.EditorOption.readOnly)) {
 				editor.setValue(next);
 				return;
 			}
@@ -86,18 +86,8 @@
 		}
 	});
 
-	onMount(() => {
-		const cancellable = loader.init();
-
-		cancellable
-			.then((m) => (monaco = m))
-			.catch((error) => {
-				if (error?.type !== 'cancellation') {
-					console.error('Monaco initialization: error:', error);
-				}
-			});
-
-		return () => (editor ? disposeEditor() : cancellable.cancel());
+	onDestroy(() => {
+		if (editor) disposeEditor();
 	});
 
 	$: if (isEditorReady) syncPath($previousPath);
@@ -106,10 +96,11 @@
 	$: if (isEditorReady) syncLine(line);
 	$: if (isEditorReady) syncTheme(theme);
 	$: if (isEditorReady) valueStore.set('external', value);
-	$: if (!isEditorReady && !isMonacoMounting) createEditor();
+	$: if (!isEditorReady && $monaco && container) createEditor($monaco, container);
 
 	function syncPath(...deps: unknown[]) {
-		const model = getOrCreateModel(monaco, value, language, $previousPath);
+		if (!$monaco) return;
+		const model = getOrCreateModel($monaco, value, language, $previousPath);
 
 		if (model !== editor.getModel()) {
 			if (saveViewState) viewStates.set($previousPath, editor.saveViewState()!);
@@ -123,7 +114,7 @@
 	}
 
 	function syncLanguage(...deps: unknown[]) {
-		monaco.editor.setModelLanguage(editor.getModel()!, language);
+		$monaco?.editor.setModelLanguage(editor.getModel()!, language);
 	}
 
 	function syncLine(...deps: unknown[]) {
@@ -134,10 +125,10 @@
 	}
 
 	function syncTheme(...deps: unknown[]) {
-		monaco.editor.setTheme(theme);
+		$monaco?.editor.setTheme(theme);
 	}
 
-	function createEditor() {
+	function createEditor(monaco: Monaco, container: HTMLElement) {
 		const defaultModel = getOrCreateModel(monaco, value, language, path);
 
 		editor = monaco.editor.create(

@@ -3,3 +3,4 @@ export type { EditorChangeEvent, EditorMountEvent, EditorValidateEvent } from '.
 export { default as DiffEditor } from './DiffEditor.svelte';
 export type { DiffEditorChangeEvent, DiffEditorMountEvent } from './DiffEditor.svelte';
 export type { Monaco } from './types';
+export { useMonaco } from './use_monaco';
