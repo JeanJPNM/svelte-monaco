@@ -93,7 +93,7 @@
 
 	function syncPath(...deps: unknown[]) {
 		if (!$monaco) return;
-		const model = getOrCreateModel($monaco, value, language, $previousPath);
+		const model = getOrCreateModel($monaco, value, language, path);
 
 		if (model === $editor.getModel()) return;
 
