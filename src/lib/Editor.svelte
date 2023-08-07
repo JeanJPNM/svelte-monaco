@@ -84,11 +84,11 @@
 		}
 	});
 
+	$: if ($monaco) syncTheme($monaco, theme);
 	$: if ($editor) syncPath($previousPath);
 	$: if ($editor) syncOptions(options);
 	$: if ($editor) syncLanguage(language);
 	$: if ($editor) syncLine(line);
-	$: if ($editor) syncTheme(theme);
 	$: if ($editor) valueStore.set('external', value);
 
 	function syncPath(...deps: unknown[]) {
@@ -115,8 +115,8 @@
 		if (line !== undefined) $editor.revealLine(line);
 	}
 
-	function syncTheme(...deps: unknown[]) {
-		$monaco?.editor.setTheme(theme);
+	function syncTheme(monaco: Monaco, theme: string) {
+		monaco.editor.setTheme(theme);
 	}
 
 	function createEditor(monaco: Monaco, container: HTMLElement) {
@@ -133,8 +133,6 @@
 		);
 
 		if (saveViewState) editor.restoreViewState(viewStates.get(path) ?? null);
-
-		monaco.editor.setTheme(theme);
 
 		return editor;
 	}

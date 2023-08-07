@@ -95,11 +95,11 @@
 		}
 	});
 
+	$: if ($monaco) syncTheme($monaco, theme);
 	$: if ($editor) originalValueStore.set('external', original);
 	$: if ($editor) modifiedValueStore.set('external', modified);
 	$: if ($editor) syncOptions(options);
 	$: if ($editor) syncLanguage(language, originalLanguage, modifiedLanguage);
-	$: if ($editor) syncTheme(theme);
 
 	function syncOptions(...deps: unknown[]) {
 		$editor.updateOptions(options);
@@ -113,8 +113,8 @@
 		$monaco.editor.setModelLanguage(modified, modifiedLanguage || language || 'text');
 	}
 
-	function syncTheme(...deps: unknown[]) {
-		$monaco?.editor.setTheme(theme);
+	function syncTheme(monaco: Monaco, theme: string) {
+		monaco.editor.setTheme(theme);
 	}
 
 	function createEditor(monaco: Monaco, container: HTMLElement) {
