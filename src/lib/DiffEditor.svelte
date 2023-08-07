@@ -1,6 +1,6 @@
 <script lang="ts" context="module">
 	export interface DiffEditorMountEvent {
-		editor: monaco.editor.IStandaloneDiffEditor;
+		editor: Editor;
 		monaco: Monaco;
 	}
 
@@ -16,6 +16,7 @@
 	}
 
 	type Options = monaco.editor.IDiffEditorConstructionOptions;
+	type Editor = monaco.editor.IStandaloneDiffEditor;
 </script>
 
 <script lang="ts">
@@ -25,6 +26,7 @@
 	import { getOrCreateModel, setEditorValue, writablePrevious } from '../utils';
 	import { multiModeStore } from '../stores/multi_mode';
 	import { useMonaco } from './use_monaco';
+	import { derived, writable, type Subscriber } from 'svelte/store';
 
 	export let original = '';
 	export let modified = '';
@@ -49,15 +51,23 @@
 
 	const dispatch = createEventDispatcher<EventMap>();
 
-	let container: HTMLDivElement | undefined;
+	const container = writable<HTMLElement | null>(null);
 
 	const monaco = useMonaco();
-	let editor: monaco.editor.IStandaloneDiffEditor;
 
-	let isEditorReady = false;
+	const editor = derived([monaco, container], ([monaco, container], set: Subscriber<Editor>) => {
+		if (!monaco || !container) return;
 
-	onDestroy(() => {
-		if (editor) disposeEditor();
+		const editor = createEditor(monaco, container);
+		const subscriptions = attachEventListeners(editor);
+
+		set(editor);
+		dispatch('mount', {
+			editor,
+			monaco
+		});
+
+		return () => disposeEditor(editor, subscriptions);
 	});
 
 	const previousPath = writablePrevious(originalModelPath);
@@ -69,7 +79,7 @@
 		},
 		external(next) {
 			if (!$monaco) return;
-			const originalEditor = editor.getOriginalEditor();
+			const originalEditor = $editor.getOriginalEditor();
 			setEditorValue($monaco, originalEditor, next);
 		}
 	});
@@ -80,28 +90,24 @@
 		},
 		external(next) {
 			if (!$monaco) return;
-			const modifiedEditor = editor.getModifiedEditor();
+			const modifiedEditor = $editor.getModifiedEditor();
 			setEditorValue($monaco, modifiedEditor, next);
 		}
 	});
 
-	let originalTextSubscription: monaco.IDisposable | undefined;
-	let modifiedTextSubscription: monaco.IDisposable | undefined;
-
-	$: if (isEditorReady) originalValueStore.set('external', original);
-	$: if (isEditorReady) modifiedValueStore.set('external', modified);
-	$: if (isEditorReady) syncOptions(options);
-	$: if (isEditorReady) syncLanguage(language, originalLanguage, modifiedLanguage);
-	$: if (isEditorReady) syncTheme(theme);
-	$: if (!isEditorReady && $monaco && container) createEditor($monaco, container);
+	$: if ($editor) originalValueStore.set('external', original);
+	$: if ($editor) modifiedValueStore.set('external', modified);
+	$: if ($editor) syncOptions(options);
+	$: if ($editor) syncLanguage(language, originalLanguage, modifiedLanguage);
+	$: if ($editor) syncTheme(theme);
 
 	function syncOptions(...deps: unknown[]) {
-		editor.updateOptions(options);
+		$editor.updateOptions(options);
 	}
 
 	function syncLanguage(...deps: unknown[]) {
 		if (!$monaco) return;
-		const { original, modified } = editor.getModel()!;
+		const { original, modified } = $editor.getModel()!;
 
 		$monaco.editor.setModelLanguage(original, originalLanguage || language || 'text');
 		$monaco.editor.setModelLanguage(modified, modifiedLanguage || language || 'text');
@@ -112,7 +118,7 @@
 	}
 
 	function createEditor(monaco: Monaco, container: HTMLElement) {
-		editor = monaco.editor.createDiffEditor(container, {
+		const editor = monaco.editor.createDiffEditor(container, {
 			automaticLayout: true,
 			...options
 		});
@@ -132,9 +138,14 @@
 		);
 
 		editor.setModel({ original: originalModel, modified: modifiedModel });
-		monaco.editor.setTheme(theme);
 
-		originalTextSubscription = originalModel.onDidChangeContent((e) => {
+		return editor;
+	}
+
+	function attachEventListeners(editor: Editor) {
+		const { modified: modifiedModel, original: originalModel } = editor.getModel()!;
+
+		const originalTextSubscription = originalModel.onDidChangeContent((e) => {
 			const text = originalModel.getValue();
 
 			if (original === text) return;
@@ -147,7 +158,7 @@
 			});
 		});
 
-		modifiedTextSubscription = modifiedModel.onDidChangeContent((e) => {
+		const modifiedTextSubscription = modifiedModel.onDidChangeContent((e) => {
 			const text = modifiedModel.getValue();
 
 			if (modified === text) return;
@@ -159,20 +170,15 @@
 				source: e
 			});
 		});
-
-		isEditorReady = true;
-
-		dispatch('mount', {
-			editor,
-			monaco
-		});
+		return [originalTextSubscription, modifiedTextSubscription];
 	}
 
-	function disposeEditor() {
+	function disposeEditor(editor: Editor, subscriptions: monaco.IDisposable[]) {
 		const { original, modified } = editor.getModel()!;
 
-		originalTextSubscription?.dispose();
-		modifiedTextSubscription?.dispose();
+		for (const subscription of subscriptions) {
+			subscription.dispose();
+		}
 
 		if (!keepCurrentOriginalModel) {
 			original?.dispose();
@@ -186,12 +192,12 @@
 	}
 </script>
 
-{#if !isEditorReady}
+{#if !$editor}
 	<slot name="loading">Loading...</slot>
 {/if}
 
 <section class="wrapper" {...wrapperProps} style:width style:height>
-	<div bind:this={container} class="{className} container" />
+	<div bind:this={$container} class="{className} container" />
 </section>
 
 <style>

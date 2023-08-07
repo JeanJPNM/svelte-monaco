@@ -11,7 +11,7 @@
 
 	/** Happens when the monaco editor is loaded and the editor is configured*/
 	export interface EditorMountEvent {
-		editor: monaco.editor.IStandaloneCodeEditor;
+		editor: Editor;
 		monaco: Monaco;
 	}
 
@@ -22,17 +22,19 @@
 	}
 
 	type Options = monaco.editor.IStandaloneEditorConstructionOptions;
+	type Editor = monaco.editor.IStandaloneCodeEditor;
 
 	const viewStates = new Map<string | undefined, monaco.editor.ICodeEditorViewState | null>();
 </script>
 
 <script lang="ts">
 	import type * as monaco from 'monaco-editor';
-	import { createEventDispatcher, onDestroy } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import type { Monaco } from './types';
 	import { getOrCreateModel, setEditorValue, writablePrevious } from '../utils';
 	import { multiModeStore } from '../stores/multi_mode';
 	import { useMonaco } from './use_monaco';
+	import { derived, writable, type Subscriber } from 'svelte/store';
 
 	export let value = '';
 	export let language: string;
@@ -51,15 +53,24 @@
 
 	const dispatch = createEventDispatcher<EventMap>();
 
-	let container: HTMLDivElement | undefined;
+	const container = writable<HTMLElement | null>(null);
 
 	const monaco = useMonaco();
 
-	let editor: monaco.editor.IStandaloneCodeEditor;
-	let modelContentSubscription: monaco.IDisposable | undefined;
-	let markerSubscription: monaco.IDisposable | undefined;
+	const editor = derived([monaco, container], ([monaco, container], set: Subscriber<Editor>) => {
+		if (!monaco || !container) return;
+		const editor = createEditor(monaco, container);
+		const subscriptions = attachEventListeners(monaco, editor);
 
-	let isEditorReady = false;
+		set(editor);
+		dispatch('mount', {
+			editor,
+			monaco
+		});
+
+		return () => disposeEditor(editor, subscriptions);
+	});
+
 	const previousPath = writablePrevious(path);
 	$: $previousPath = path;
 
@@ -69,44 +80,39 @@
 		},
 		external(next) {
 			if (!$monaco) return;
-			setEditorValue($monaco, editor, next);
+			setEditorValue($monaco, $editor, next);
 		}
 	});
 
-	onDestroy(() => {
-		if (editor) disposeEditor();
-	});
-
-	$: if (isEditorReady) syncPath($previousPath);
-	$: if (isEditorReady) syncOptions(options);
-	$: if (isEditorReady) syncLanguage(language);
-	$: if (isEditorReady) syncLine(line);
-	$: if (isEditorReady) syncTheme(theme);
-	$: if (isEditorReady) valueStore.set('external', value);
-	$: if (!isEditorReady && $monaco && container) createEditor($monaco, container);
+	$: if ($editor) syncPath($previousPath);
+	$: if ($editor) syncOptions(options);
+	$: if ($editor) syncLanguage(language);
+	$: if ($editor) syncLine(line);
+	$: if ($editor) syncTheme(theme);
+	$: if ($editor) valueStore.set('external', value);
 
 	function syncPath(...deps: unknown[]) {
 		if (!$monaco) return;
 		const model = getOrCreateModel($monaco, value, language, $previousPath);
 
-		if (model === editor.getModel()) return;
+		if (model === $editor.getModel()) return;
 
-		if (saveViewState) viewStates.set($previousPath, editor.saveViewState());
-		editor.setModel(model);
-		if (saveViewState) editor.restoreViewState(viewStates.get(path) ?? null);
+		if (saveViewState) viewStates.set($previousPath, $editor.saveViewState());
+		$editor.setModel(model);
+		if (saveViewState) $editor.restoreViewState(viewStates.get(path) ?? null);
 	}
 
 	function syncOptions(...deps: unknown[]) {
-		editor.updateOptions(options);
+		$editor.updateOptions(options);
 	}
 
 	function syncLanguage(...deps: unknown[]) {
-		$monaco?.editor.setModelLanguage(editor.getModel()!, language);
+		$monaco?.editor.setModelLanguage($editor.getModel()!, language);
 	}
 
 	function syncLine(...deps: unknown[]) {
 		// reason for undefined check: https://github.com/suren-atoyan/monaco-react/pull/188
-		if (line !== undefined) editor.revealLine(line);
+		if (line !== undefined) $editor.revealLine(line);
 	}
 
 	function syncTheme(...deps: unknown[]) {
@@ -116,7 +122,7 @@
 	function createEditor(monaco: Monaco, container: HTMLElement) {
 		const defaultModel = getOrCreateModel(monaco, value, language, path);
 
-		editor = monaco.editor.create(
+		const editor = monaco.editor.create(
 			container,
 			{
 				model: defaultModel,
@@ -130,7 +136,11 @@
 
 		monaco.editor.setTheme(theme);
 
-		modelContentSubscription = editor.onDidChangeModelContent((event) => {
+		return editor;
+	}
+
+	function attachEventListeners(monaco: Monaco, editor: Editor): monaco.IDisposable[] {
+		const modelContentSubscription = editor.onDidChangeModelContent((event) => {
 			const text = editor.getValue();
 
 			if (value === text) return;
@@ -143,7 +153,7 @@
 			});
 		});
 
-		markerSubscription = monaco.editor.onDidChangeMarkers((uris) => {
+		const markerSubscription = monaco.editor.onDidChangeMarkers((uris) => {
 			const editorUri = editor.getModel()?.uri;
 
 			if (!editorUri) return;
@@ -158,16 +168,13 @@
 			});
 		});
 
-		isEditorReady = true;
-
-		dispatch('mount', {
-			editor,
-			monaco
-		});
+		return [modelContentSubscription, markerSubscription];
 	}
-	function disposeEditor() {
-		modelContentSubscription?.dispose();
-		markerSubscription?.dispose();
+
+	function disposeEditor(editor: Editor, subscriptions: monaco.IDisposable[]) {
+		for (const subscription of subscriptions) {
+			subscription.dispose();
+		}
 
 		if (keepCurrentModel) {
 			if (saveViewState) viewStates.set(path, editor.saveViewState());
@@ -178,12 +185,12 @@
 	}
 </script>
 
-{#if !isEditorReady}
+{#if !$editor}
 	<slot name="loading">Loading...</slot>
 {/if}
 
 <section class="wrapper" {...wrapperProps} style:width style:height>
-	<div bind:this={container} class="{className} container" />
+	<div bind:this={$container} class="{className} container" />
 </section>
 
 <slot {monaco} {editor} />
