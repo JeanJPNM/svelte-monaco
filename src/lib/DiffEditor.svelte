@@ -100,6 +100,8 @@
 	$: if ($editor) modifiedValueStore.set('external', modified);
 	$: if ($editor) syncOptions(options);
 	$: if ($editor) syncLanguage(language, originalLanguage, modifiedLanguage);
+	$: if ($editor) syncOriginalPath(originalModelPath);
+	$: if ($editor) syncModifiedPath(modifiedModelPath);
 
 	function syncOptions(...deps: unknown[]) {
 		$editor.updateOptions(options);
@@ -115,6 +117,34 @@
 
 	function syncTheme(monaco: Monaco, theme: string) {
 		monaco.editor.setTheme(theme);
+	}
+
+	function syncOriginalPath(...deps: unknown[]) {
+		if (!$monaco) return;
+		const originalEditor = $editor.getOriginalEditor();
+		const model = getOrCreateModel(
+			$monaco,
+			original,
+			originalLanguage || language || 'text',
+			originalModelPath
+		);
+
+		if (model === originalEditor.getModel()) return;
+		originalEditor.setModel(model);
+	}
+
+	function syncModifiedPath(...deps: unknown[]) {
+		if (!$monaco) return;
+		const modifiedEditor = $editor.getModifiedEditor();
+		const model = getOrCreateModel(
+			$monaco,
+			modified,
+			modifiedLanguage || language || 'text',
+			modifiedModelPath
+		);
+
+		if (model === modifiedEditor.getModel()) return;
+		modifiedEditor.setModel(model);
 	}
 
 	function createEditor(monaco: Monaco, container: HTMLElement) {
