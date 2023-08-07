@@ -23,14 +23,14 @@
 
 	type Options = monaco.editor.IStandaloneEditorConstructionOptions;
 
-	const viewStates = new Map<string | undefined, monaco.editor.ICodeEditorViewState>();
+	const viewStates = new Map<string | undefined, monaco.editor.ICodeEditorViewState | null>();
 </script>
 
 <script lang="ts">
 	import type * as monaco from 'monaco-editor';
 	import { createEventDispatcher, onDestroy } from 'svelte';
 	import type { Monaco } from './types';
-	import { getOrCreateModel, writablePrevious } from '../utils';
+	import { getOrCreateModel, setEditorValue, writablePrevious } from '../utils';
 	import { multiModeStore } from '../stores/multi_mode';
 	import { useMonaco } from './use_monaco';
 
@@ -69,20 +69,7 @@
 		},
 		external(next) {
 			if (!$monaco) return;
-			if (editor.getOption($monaco.editor.EditorOption.readOnly)) {
-				editor.setValue(next);
-				return;
-			}
-
-			editor.executeEdits('', [
-				{
-					range: editor.getModel()!.getFullModelRange(),
-					text: next,
-					forceMoveMarkers: true
-				}
-			]);
-
-			editor.pushUndoStop();
+			setEditorValue($monaco, editor, next);
 		}
 	});
 
@@ -102,11 +89,11 @@
 		if (!$monaco) return;
 		const model = getOrCreateModel($monaco, value, language, $previousPath);
 
-		if (model !== editor.getModel()) {
-			if (saveViewState) viewStates.set($previousPath, editor.saveViewState()!);
-			editor.setModel(model);
-			if (saveViewState) editor.restoreViewState(viewStates.get($previousPath)!);
-		}
+		if (model === editor.getModel()) return;
+
+		if (saveViewState) viewStates.set($previousPath, editor.saveViewState());
+		editor.setModel(model);
+		if (saveViewState) editor.restoreViewState(viewStates.get(path) ?? null);
 	}
 
 	function syncOptions(...deps: unknown[]) {
@@ -119,9 +106,7 @@
 
 	function syncLine(...deps: unknown[]) {
 		// reason for undefined check: https://github.com/suren-atoyan/monaco-react/pull/188
-		if (line !== undefined) {
-			editor.revealLine(line);
-		}
+		if (line !== undefined) editor.revealLine(line);
 	}
 
 	function syncTheme(...deps: unknown[]) {
@@ -141,7 +126,7 @@
 			overrideServices
 		);
 
-		saveViewState && editor.restoreViewState(viewStates.get(path)!);
+		if (saveViewState) editor.restoreViewState(viewStates.get(path) ?? null);
 
 		monaco.editor.setTheme(theme);
 
@@ -185,7 +170,7 @@
 		markerSubscription?.dispose();
 
 		if (keepCurrentModel) {
-			if (saveViewState) viewStates.set(path, editor.saveViewState()!);
+			if (saveViewState) viewStates.set(path, editor.saveViewState());
 		} else {
 			editor.getModel()?.dispose();
 		}

@@ -22,7 +22,7 @@
 	import type * as monaco from 'monaco-editor';
 	import { createEventDispatcher, onDestroy } from 'svelte';
 	import type { Monaco } from './types';
-	import { getOrCreateModel, writablePrevious } from '../utils';
+	import { getOrCreateModel, setEditorValue, writablePrevious } from '../utils';
 	import { multiModeStore } from '../stores/multi_mode';
 	import { useMonaco } from './use_monaco';
 
@@ -68,7 +68,9 @@
 			original = next;
 		},
 		external(next) {
-			editor.getModel()!.original.setValue(next);
+			if (!$monaco) return;
+			const originalEditor = editor.getOriginalEditor();
+			setEditorValue($monaco, originalEditor, next);
 		}
 	});
 
@@ -79,22 +81,7 @@
 		external(next) {
 			if (!$monaco) return;
 			const modifiedEditor = editor.getModifiedEditor();
-			if (modifiedEditor.getOption($monaco.editor.EditorOption.readOnly)) {
-				modifiedEditor.setValue(next);
-				return;
-			}
-
-			if (next === modifiedEditor.getValue()) return;
-
-			modifiedEditor.executeEdits('', [
-				{
-					range: modifiedEditor.getModel()!.getFullModelRange(),
-					text: next,
-					forceMoveMarkers: true
-				}
-			]);
-
-			modifiedEditor.pushUndoStop();
+			setEditorValue($monaco, modifiedEditor, next);
 		}
 	});
 
@@ -116,8 +103,8 @@
 		if (!$monaco) return;
 		const { original, modified } = editor.getModel()!;
 
-		$monaco.editor.setModelLanguage(original, originalLanguage || language!);
-		$monaco.editor.setModelLanguage(modified, modifiedLanguage || language!);
+		$monaco.editor.setModelLanguage(original, originalLanguage || language || 'text');
+		$monaco.editor.setModelLanguage(modified, modifiedLanguage || language || 'text');
 	}
 
 	function syncTheme(...deps: unknown[]) {
@@ -133,14 +120,14 @@
 		const originalModel = getOrCreateModel(
 			monaco,
 			original,
-			originalLanguage || language!,
+			originalLanguage || language,
 			originalModelPath
 		);
 
 		const modifiedModel = getOrCreateModel(
 			monaco,
 			modified,
-			modifiedLanguage || language!,
+			modifiedLanguage || language,
 			modifiedModelPath
 		);
 
@@ -182,17 +169,17 @@
 	}
 
 	function disposeEditor() {
-		const models = editor.getModel()!;
+		const { original, modified } = editor.getModel()!;
 
 		originalTextSubscription?.dispose();
 		modifiedTextSubscription?.dispose();
 
 		if (!keepCurrentOriginalModel) {
-			models.original?.dispose();
+			original?.dispose();
 		}
 
 		if (!keepCurrentModifiedModel) {
-			models.modified?.dispose();
+			modified?.dispose();
 		}
 
 		editor.dispose();
