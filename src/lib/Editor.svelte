@@ -37,7 +37,7 @@
 	import { derived, writable, type Subscriber } from 'svelte/store';
 
 	export let value = '';
-	export let language: string;
+	export let language = 'text';
 	export let path: string | undefined = undefined;
 	export let theme = 'light';
 	export let line: number | undefined = undefined;

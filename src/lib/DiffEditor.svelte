@@ -21,7 +21,7 @@
 
 <script lang="ts">
 	import type * as monaco from 'monaco-editor';
-	import { createEventDispatcher, onDestroy } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import type { Monaco } from './types';
 	import { getOrCreateModel, setEditorValue, writablePrevious } from '../utils';
 	import { multiModeStore } from '../stores/multi_mode';
@@ -31,7 +31,7 @@
 	export let original = '';
 	export let modified = '';
 
-	export let language: string | undefined = undefined;
+	export let language = 'text';
 
 	export let originalLanguage: string | undefined = undefined;
 	export let modifiedLanguage: string | undefined = undefined;
@@ -111,8 +111,8 @@
 		if (!$monaco) return;
 		const { original, modified } = $editor.getModel()!;
 
-		$monaco.editor.setModelLanguage(original, originalLanguage || language || 'text');
-		$monaco.editor.setModelLanguage(modified, modifiedLanguage || language || 'text');
+		$monaco.editor.setModelLanguage(original, originalLanguage || language);
+		$monaco.editor.setModelLanguage(modified, modifiedLanguage || language);
 	}
 
 	function syncTheme(monaco: Monaco, theme: string) {
@@ -125,7 +125,7 @@
 		const model = getOrCreateModel(
 			$monaco,
 			original,
-			originalLanguage || language || 'text',
+			originalLanguage || language,
 			originalModelPath
 		);
 
@@ -139,7 +139,7 @@
 		const model = getOrCreateModel(
 			$monaco,
 			modified,
-			modifiedLanguage || language || 'text',
+			modifiedLanguage || language,
 			modifiedModelPath
 		);
 
