@@ -37,11 +37,11 @@
 <script lang="ts">
   import type * as monaco from 'monaco-editor';
   import { createEventDispatcher } from 'svelte';
-  import type { Monaco } from './types';
-  import { useMonaco } from './use_monaco';
+  import type { Monaco } from './types.js';
+  import { useMonaco } from './use_monaco.js';
   import { derived, writable, type Subscriber } from 'svelte/store';
-  import { multiModeStore, writablePrevious } from './stores';
-  import { getOrCreateModel, setEditorValue } from './utils';
+  import { multiModeStore, writablePrevious } from './stores.js';
+  import { getOrCreateModel, setEditorValue } from './utils.js';
 
   export let value = '';
   export let language = 'text';

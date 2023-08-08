@@ -25,10 +25,10 @@
 <script lang="ts">
   import type * as monaco from 'monaco-editor';
   import { createEventDispatcher } from 'svelte';
-  import type { Monaco } from './types';
-  import { getOrCreateModel, setEditorValue } from './utils';
-  import { multiModeStore, writablePrevious } from './stores';
-  import { useMonaco } from './use_monaco';
+  import type { Monaco } from './types.js';
+  import { getOrCreateModel, setEditorValue } from './utils.js';
+  import { multiModeStore, writablePrevious } from './stores.js';
+  import { useMonaco } from './use_monaco.js';
   import { derived, writable, type Subscriber } from 'svelte/store';
 
   export let original = '';

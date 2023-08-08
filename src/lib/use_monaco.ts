@@ -1,4 +1,4 @@
-import type { Monaco } from '$lib';
+import type { Monaco } from '$lib/types.js';
 import loader from '@monaco-editor/loader';
 import { onMount } from 'svelte';
 import { writable, type Readable, get } from 'svelte/store';

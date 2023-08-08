@@ -9,5 +9,5 @@ export type {
   DiffEditorChangeEvent,
   DiffEditorReadyEvent
 } from './DiffEditor.svelte';
-export type { Monaco } from './types';
-export { useMonaco } from './use_monaco';
+export type { Monaco } from './types.js';
+export { useMonaco } from './use_monaco.js';

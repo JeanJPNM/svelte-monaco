@@ -1,4 +1,4 @@
-import type { Monaco } from '$lib/types';
+import type { Monaco } from '$lib/types.js';
 import type * as monaco from 'monaco-editor';
 
 /**
