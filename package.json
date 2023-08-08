@@ -10,6 +10,13 @@
     "lint": "prettier --plugin-search-dir . --check . && eslint .",
     "format": "prettier --plugin-search-dir . --write ."
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "svelte": "./dist/index.js"
+    }
+  },
   "devDependencies": {
     "@playwright/test": "^1.36.2",
     "@sveltejs/kit": "^1.22.4",
