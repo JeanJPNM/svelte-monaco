@@ -1,18 +1,21 @@
 <script lang="ts" context="module">
-  export interface DiffEditorReadyEvent {
+  export interface DiffEditorReadyDetail {
     editor: Editor;
     monaco: Monaco;
   }
 
-  export interface DiffEditorChangeEvent {
+  export interface DiffEditorChangeDetail {
     text: string;
     source: monaco.editor.IModelContentChangedEvent;
   }
 
+  export type DiffEditorReadyEvent = CustomEvent<DiffEditorReadyDetail>;
+  export type DiffEditorChangeEvent = CustomEvent<DiffEditorChangeDetail>;
+
   interface EventMap {
-    ready: DiffEditorReadyEvent;
-    originalChange: DiffEditorChangeEvent;
-    modifiedChange: DiffEditorChangeEvent;
+    ready: DiffEditorReadyDetail;
+    originalChange: DiffEditorChangeDetail;
+    modifiedChange: DiffEditorChangeDetail;
   }
 
   type Options = monaco.editor.IDiffEditorConstructionOptions;

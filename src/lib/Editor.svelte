@@ -1,24 +1,28 @@
 <script context="module" lang="ts">
   /** Happens when the content of the underlying editor changes*/
-  export interface EditorChangeEvent {
+  export interface EditorChangeDetail {
     text: string;
     source: monaco.editor.IModelContentChangedEvent;
   }
 
-  export interface EditorValidateEvent {
+  export interface EditorValidateDetail {
     markers: monaco.editor.IMarker[];
   }
 
   /** Happens when the monaco editor is loaded and the editor is configured*/
-  export interface EditorReadyEvent {
+  export interface EditorReadyDetail {
     editor: Editor;
     monaco: Monaco;
   }
 
+  export type EditorChangeEvent = CustomEvent<EditorChangeDetail>;
+  export type EditorValidateEvent = CustomEvent<EditorValidateDetail>;
+  export type EditorReadyEvent = CustomEvent<EditorReadyDetail>;
+
   interface EventMap {
-    change: EditorChangeEvent;
-    validate: EditorValidateEvent;
-    ready: EditorReadyEvent;
+    change: EditorChangeDetail;
+    validate: EditorValidateDetail;
+    ready: EditorReadyDetail;
   }
 
   type Options = monaco.editor.IStandaloneEditorConstructionOptions;
