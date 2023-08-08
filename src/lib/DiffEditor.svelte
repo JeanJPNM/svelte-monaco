@@ -26,8 +26,8 @@
   import type * as monaco from 'monaco-editor';
   import { createEventDispatcher } from 'svelte';
   import type { Monaco } from './types';
-  import { getOrCreateModel, setEditorValue, writablePrevious } from '../utils';
-  import { multiModeStore } from '../stores/multi_mode';
+  import { getOrCreateModel, setEditorValue } from './utils';
+  import { multiModeStore, writablePrevious } from './stores';
   import { useMonaco } from './use_monaco';
   import { derived, writable, type Subscriber } from 'svelte/store';
 

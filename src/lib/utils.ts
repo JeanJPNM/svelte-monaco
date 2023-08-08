@@ -1,23 +1,5 @@
 import type { Monaco } from '$lib/types';
 import type * as monaco from 'monaco-editor';
-import { writable, type Writable } from 'svelte/store';
-
-export function writablePrevious<T>(init: T): Writable<T> {
-  const previous = writable(init);
-  let next = init;
-
-  return {
-    subscribe: previous.subscribe,
-    set(value) {
-      previous.set(next);
-      next = value;
-    },
-    update(updater) {
-      previous.set(next);
-      next = updater(next);
-    }
-  };
-}
 
 /**
  * Sets the value of the editor and if it is not read-only,

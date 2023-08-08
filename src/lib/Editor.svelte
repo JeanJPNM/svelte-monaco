@@ -38,10 +38,10 @@
   import type * as monaco from 'monaco-editor';
   import { createEventDispatcher } from 'svelte';
   import type { Monaco } from './types';
-  import { getOrCreateModel, setEditorValue, writablePrevious } from '../utils';
-  import { multiModeStore } from '../stores/multi_mode';
   import { useMonaco } from './use_monaco';
   import { derived, writable, type Subscriber } from 'svelte/store';
+  import { multiModeStore, writablePrevious } from './stores';
+  import { getOrCreateModel, setEditorValue } from './utils';
 
   export let value = '';
   export let language = 'text';
