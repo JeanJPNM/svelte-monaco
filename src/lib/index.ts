@@ -1,13 +1,13 @@
 export { default as Editor } from './Editor.svelte';
 export type {
   EditorChangeEvent,
-  EditorMountEvent,
+  EditorReadyEvent,
   EditorValidateEvent
 } from './Editor.svelte';
 export { default as DiffEditor } from './DiffEditor.svelte';
 export type {
   DiffEditorChangeEvent,
-  DiffEditorMountEvent
+  DiffEditorReadyEvent
 } from './DiffEditor.svelte';
 export type { Monaco } from './types';
 export { useMonaco } from './use_monaco';

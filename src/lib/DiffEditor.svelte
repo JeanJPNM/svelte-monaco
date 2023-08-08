@@ -1,5 +1,5 @@
 <script lang="ts" context="module">
-  export interface DiffEditorMountEvent {
+  export interface DiffEditorReadyEvent {
     editor: Editor;
     monaco: Monaco;
   }
@@ -10,7 +10,7 @@
   }
 
   interface EventMap {
-    mount: DiffEditorMountEvent;
+    ready: DiffEditorReadyEvent;
     originalChange: DiffEditorChangeEvent;
     modifiedChange: DiffEditorChangeEvent;
   }
@@ -64,7 +64,7 @@
       const subscriptions = attachEventListeners(editor);
 
       set(editor);
-      dispatch('mount', {
+      dispatch('ready', {
         editor,
         monaco
       });

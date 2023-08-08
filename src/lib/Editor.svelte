@@ -10,7 +10,7 @@
   }
 
   /** Happens when the monaco editor is loaded and the editor is configured*/
-  export interface EditorMountEvent {
+  export interface EditorReadyEvent {
     editor: Editor;
     monaco: Monaco;
   }
@@ -18,7 +18,7 @@
   interface EventMap {
     change: EditorChangeEvent;
     validate: EditorValidateEvent;
-    mount: EditorMountEvent;
+    ready: EditorReadyEvent;
   }
 
   type Options = monaco.editor.IStandaloneEditorConstructionOptions;
@@ -68,7 +68,7 @@
       const subscriptions = attachEventListeners(monaco, editor);
 
       set(editor);
-      dispatch('mount', {
+      dispatch('ready', {
         editor,
         monaco
       });
