@@ -1,4 +1,5 @@
 import { get, writable, type Updater, type Writable } from 'svelte/store';
+import { safe_not_equal } from 'svelte/internal';
 
 export function multiModeStore<
   T,
@@ -12,13 +13,13 @@ export function multiModeStore<
       const prev = get(store);
       store.update(updater);
       const next = get(store);
-      if (prev === next) return;
+      if (!safe_not_equal(prev, next)) return;
 
       handlers[kind](next);
     },
 
     set(kind: keyof Handlers, value: T) {
-      if (value === get(store)) return;
+      if (!safe_not_equal(value, get(store))) return;
       store.set(value);
       handlers[kind](value);
     }
@@ -32,12 +33,15 @@ export function writablePrevious<T>(init: T): Writable<T> {
   return {
     subscribe: previous.subscribe,
     set(value) {
+      if (!safe_not_equal(next, value)) return;
       previous.set(next);
       next = value;
     },
     update(updater) {
+      const value = updater(next);
+      if (!safe_not_equal(next, value)) return;
       previous.set(next);
-      next = updater(next);
+      next = value;
     }
   };
 }

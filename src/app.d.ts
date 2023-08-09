@@ -9,3 +9,7 @@ declare namespace App {
   // interface Error {}
   // interface Platform {}
 }
+
+declare module 'svelte/internal' {
+  export function safe_not_equal(a: unknown, b: unknown): boolean;
+}
