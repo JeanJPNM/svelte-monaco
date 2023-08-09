@@ -82,7 +82,11 @@
   );
 
   const previousPath = writablePrevious(path);
-  $: $previousPath = path;
+
+  // using the `$store = value` form currently
+  // modifies the $store variable and then runs
+  // the set method, which can cause unexpected behavior
+  $: previousPath.set(path);
 
   const valueStore = multiModeStore(value, {
     internal(next) {
