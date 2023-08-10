@@ -206,8 +206,6 @@
 
 <div bind:this={$container} class="container {className}" />
 
-<slot {monaco} {editor} />
-
 <style>
   .container {
     width: var(--svelte-monaco-width);
