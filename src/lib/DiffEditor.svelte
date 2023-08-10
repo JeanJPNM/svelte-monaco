@@ -46,11 +46,8 @@
   export let options: EditorOptions = {};
   export let keepCurrentOriginalModel = false;
   export let keepCurrentModifiedModel = false;
-  export let width = '100%';
-  export let height = '100%';
   let className = '';
   export { className as class };
-  export let wrapperProps: object = {};
 
   const dispatch = createEventDispatcher<EventMap>();
 
@@ -239,17 +236,11 @@
   <slot name="loading">Loading...</slot>
 {/if}
 
-<section class="wrapper" {...wrapperProps} style:width style:height>
-  <div bind:this={$container} class="{className} container" />
-</section>
+<div bind:this={$container} class="container {className} " />
 
 <style>
-  .wrapper {
-    display: flex;
-    position: relative;
-    text-align: initial;
-  }
   .container {
-    width: 100%;
+    width: var(--svelte-monaco-width);
+    height: var(--svelte-monaco-height);
   }
 </style>
