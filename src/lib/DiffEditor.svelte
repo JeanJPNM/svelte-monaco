@@ -39,8 +39,8 @@
   export let originalLanguage: string | undefined = undefined;
   export let modifiedLanguage: string | undefined = undefined;
 
-  export let originalModelPath: string | undefined = undefined;
-  export let modifiedModelPath: string | undefined = undefined;
+  export let originalPath: string | undefined = undefined;
+  export let modifiedPath: string | undefined = undefined;
 
   export let theme = 'light';
   export let options: Options = {};
@@ -76,11 +76,11 @@
     }
   );
 
-  const previousOriginalPath = writablePrevious(originalModelPath);
-  $: $previousOriginalPath = originalModelPath;
+  const previousOriginalPath = writablePrevious(originalPath);
+  $: $previousOriginalPath = originalPath;
 
-  const previousModifiedPath = writablePrevious(modifiedModelPath);
-  $: $previousModifiedPath = modifiedModelPath;
+  const previousModifiedPath = writablePrevious(modifiedPath);
+  $: $previousModifiedPath = modifiedPath;
 
   const originalValueStore = multiModeStore(original, {
     internal(next) {
@@ -109,8 +109,8 @@
   $: if ($editor) modifiedValueStore.set('external', modified);
   $: if ($editor) syncOptions(options);
   $: if ($editor) syncLanguage(language, originalLanguage, modifiedLanguage);
-  $: if ($editor) syncOriginalPath(originalModelPath);
-  $: if ($editor) syncModifiedPath(modifiedModelPath);
+  $: if ($editor) syncOriginalPath(originalPath);
+  $: if ($editor) syncModifiedPath(modifiedPath);
 
   function syncOptions(...deps: unknown[]) {
     $editor.updateOptions(options);
@@ -129,13 +129,13 @@
   }
 
   function syncOriginalPath(...deps: unknown[]) {
-    if (!$monaco || $previousOriginalPath === originalModelPath) return;
+    if (!$monaco || $previousOriginalPath === originalPath) return;
     const originalEditor = $editor.getOriginalEditor();
     const model = getOrCreateModel(
       $monaco,
       original,
       originalLanguage || language,
-      originalModelPath
+      originalPath
     );
 
     if (model === originalEditor.getModel()) return;
@@ -143,13 +143,13 @@
   }
 
   function syncModifiedPath(...deps: unknown[]) {
-    if (!$monaco || $previousModifiedPath === modifiedModelPath) return;
+    if (!$monaco || $previousModifiedPath === modifiedPath) return;
     const modifiedEditor = $editor.getModifiedEditor();
     const model = getOrCreateModel(
       $monaco,
       modified,
       modifiedLanguage || language,
-      modifiedModelPath
+      modifiedPath
     );
 
     if (model === modifiedEditor.getModel()) return;
@@ -166,14 +166,14 @@
       monaco,
       original,
       originalLanguage || language,
-      originalModelPath
+      originalPath
     );
 
     const modifiedModel = getOrCreateModel(
       monaco,
       modified,
       modifiedLanguage || language,
-      modifiedModelPath
+      modifiedPath
     );
 
     editor.setModel({ original: originalModel, modified: modifiedModel });
