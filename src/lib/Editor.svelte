@@ -106,7 +106,7 @@
   $: if ($editor) valueStore.set('external', value);
 
   function syncPath(...deps: unknown[]) {
-    if (!$monaco) return;
+    if (!$monaco || $previousPath === path) return;
     const model = getOrCreateModel($monaco, value, language, path);
 
     if (model === $editor.getModel()) return;

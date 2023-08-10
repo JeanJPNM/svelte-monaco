@@ -76,8 +76,11 @@
     }
   );
 
-  const previousPath = writablePrevious(originalModelPath);
-  $: $previousPath = originalModelPath;
+  const previousOriginalPath = writablePrevious(originalModelPath);
+  $: $previousOriginalPath = originalModelPath;
+
+  const previousModifiedPath = writablePrevious(modifiedModelPath);
+  $: $previousModifiedPath = modifiedModelPath;
 
   const originalValueStore = multiModeStore(original, {
     internal(next) {
@@ -126,7 +129,7 @@
   }
 
   function syncOriginalPath(...deps: unknown[]) {
-    if (!$monaco) return;
+    if (!$monaco || $previousOriginalPath === originalModelPath) return;
     const originalEditor = $editor.getOriginalEditor();
     const model = getOrCreateModel(
       $monaco,
@@ -140,7 +143,7 @@
   }
 
   function syncModifiedPath(...deps: unknown[]) {
-    if (!$monaco) return;
+    if (!$monaco || $previousModifiedPath === modifiedModelPath) return;
     const modifiedEditor = $editor.getModifiedEditor();
     const model = getOrCreateModel(
       $monaco,
