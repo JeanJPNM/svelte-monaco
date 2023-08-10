@@ -11,7 +11,7 @@
 
   /** Happens when the monaco editor is loaded and the editor is configured*/
   export interface EditorReadyDetail {
-    editor: Editor;
+    editor: CodeEditor;
     monaco: Monaco;
   }
 
@@ -25,8 +25,8 @@
     ready: EditorReadyDetail;
   }
 
-  type Options = monaco.editor.IStandaloneEditorConstructionOptions;
-  type Editor = monaco.editor.IStandaloneCodeEditor;
+  type EditorOptions = monaco.editor.IStandaloneEditorConstructionOptions;
+  type CodeEditor = monaco.editor.IStandaloneCodeEditor;
 
   const viewStates = new Map<
     string | undefined,
@@ -48,7 +48,7 @@
   export let path: string | undefined = undefined;
   export let theme = 'light';
   export let line: number | undefined = undefined;
-  export let options: Options = {};
+  export let options: EditorOptions = {};
   export let overrideServices: monaco.editor.IEditorOverrideServices = {};
   export let saveViewState = true;
   export let keepCurrentModel = false;
@@ -66,7 +66,7 @@
 
   const editor = derived(
     [monaco, container],
-    ([monaco, container], set: Subscriber<Editor>) => {
+    ([monaco, container], set: Subscriber<CodeEditor>) => {
       if (!monaco || !container) return;
       const editor = createEditor(monaco, container);
       const subscriptions = attachEventListeners(monaco, editor);
@@ -153,7 +153,7 @@
 
   function attachEventListeners(
     monaco: Monaco,
-    editor: Editor
+    editor: CodeEditor
   ): monaco.IDisposable[] {
     const modelContentSubscription = editor.onDidChangeModelContent((event) => {
       const text = editor.getValue();
@@ -186,7 +186,10 @@
     return [modelContentSubscription, markerSubscription];
   }
 
-  function disposeEditor(editor: Editor, subscriptions: monaco.IDisposable[]) {
+  function disposeEditor(
+    editor: CodeEditor,
+    subscriptions: monaco.IDisposable[]
+  ) {
     for (const subscription of subscriptions) {
       subscription.dispose();
     }

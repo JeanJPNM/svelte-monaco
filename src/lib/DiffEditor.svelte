@@ -1,6 +1,6 @@
 <script lang="ts" context="module">
   export interface DiffEditorReadyDetail {
-    editor: Editor;
+    editor: DiffCodeEditor;
     monaco: Monaco;
   }
 
@@ -18,8 +18,8 @@
     modifiedChange: DiffEditorChangeDetail;
   }
 
-  type Options = monaco.editor.IDiffEditorConstructionOptions;
-  type Editor = monaco.editor.IStandaloneDiffEditor;
+  type EditorOptions = monaco.editor.IDiffEditorConstructionOptions;
+  type DiffCodeEditor = monaco.editor.IStandaloneDiffEditor;
 </script>
 
 <script lang="ts">
@@ -43,7 +43,7 @@
   export let modifiedPath: string | undefined = undefined;
 
   export let theme = 'light';
-  export let options: Options = {};
+  export let options: EditorOptions = {};
   export let keepCurrentOriginalModel = false;
   export let keepCurrentModifiedModel = false;
   export let width = '100%';
@@ -60,7 +60,7 @@
 
   const editor = derived(
     [monaco, container],
-    ([monaco, container], set: Subscriber<Editor>) => {
+    ([monaco, container], set: Subscriber<DiffCodeEditor>) => {
       if (!monaco || !container) return;
 
       const editor = createEditor(monaco, container);
@@ -181,7 +181,7 @@
     return editor;
   }
 
-  function attachEventListeners(editor: Editor) {
+  function attachEventListeners(editor: DiffCodeEditor) {
     const { modified: modifiedModel, original: originalModel } =
       editor.getModel()!;
 
@@ -213,7 +213,10 @@
     return [originalTextSubscription, modifiedTextSubscription];
   }
 
-  function disposeEditor(editor: Editor, subscriptions: monaco.IDisposable[]) {
+  function disposeEditor(
+    editor: DiffCodeEditor,
+    subscriptions: monaco.IDisposable[]
+  ) {
     const { original, modified } = editor.getModel()!;
 
     for (const subscription of subscriptions) {
