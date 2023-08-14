@@ -37,7 +37,7 @@
 <script lang="ts">
   import type * as monaco from 'monaco-editor';
   import { createEventDispatcher } from 'svelte';
-  import type { Monaco } from './types.js';
+  import type { Monaco, ThemeName } from './types.js';
   import { useMonaco } from './use_monaco.js';
   import { derived, writable, type Subscriber } from 'svelte/store';
   import { multiModeStore, writablePrevious } from './stores.js';
@@ -46,7 +46,7 @@
   export let value = '';
   export let language = 'text';
   export let path: string | undefined = undefined;
-  export let theme = 'light';
+  export let theme: ThemeName = 'vs';
   export let line: number | undefined = undefined;
   export let options: EditorOptions = {};
   export let overrideServices: monaco.editor.IEditorOverrideServices = {};

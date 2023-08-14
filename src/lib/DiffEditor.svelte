@@ -25,7 +25,7 @@
 <script lang="ts">
   import type * as monaco from 'monaco-editor';
   import { createEventDispatcher } from 'svelte';
-  import type { Monaco } from './types.js';
+  import type { Monaco, ThemeName } from './types.js';
   import { getOrCreateModel, setEditorValue } from './utils.js';
   import { multiModeStore, writablePrevious } from './stores.js';
   import { useMonaco } from './use_monaco.js';
@@ -42,7 +42,7 @@
   export let originalPath: string | undefined = undefined;
   export let modifiedPath: string | undefined = undefined;
 
-  export let theme = 'light';
+  export let theme: ThemeName = 'vs';
   export let options: EditorOptions = {};
   export let keepCurrentOriginalModel = false;
   export let keepCurrentModifiedModel = false;
