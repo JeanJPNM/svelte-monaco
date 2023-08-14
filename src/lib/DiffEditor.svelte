@@ -42,7 +42,7 @@
   export let originalPath: string | undefined = undefined;
   export let modifiedPath: string | undefined = undefined;
 
-  export let theme: ThemeName = 'vs';
+  export let theme: ThemeName | undefined = undefined;
   export let options: EditorOptions = {};
   export let keepCurrentOriginalModel = false;
   export let keepCurrentModifiedModel = false;
@@ -101,7 +101,7 @@
     }
   });
 
-  $: if ($monaco) syncTheme($monaco, theme);
+  $: if ($monaco && theme) syncTheme($monaco, theme);
   $: if ($editor) originalValueStore.set('external', original);
   $: if ($editor) modifiedValueStore.set('external', modified);
   $: if ($editor) syncOptions(options);

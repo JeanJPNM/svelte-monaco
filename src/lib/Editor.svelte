@@ -46,7 +46,7 @@
   export let value = '';
   export let language = 'text';
   export let path: string | undefined = undefined;
-  export let theme: ThemeName = 'vs';
+  export let theme: ThemeName | undefined = undefined;
   export let line: number | undefined = undefined;
   export let options: EditorOptions = {};
   export let overrideServices: monaco.editor.IEditorOverrideServices = {};
@@ -95,7 +95,7 @@
     }
   });
 
-  $: if ($monaco) syncTheme($monaco, theme);
+  $: if ($monaco && theme) syncTheme($monaco, theme);
   $: if ($editor) syncPath($previousPath);
   $: if ($editor) syncOptions(options);
   $: if ($editor) syncLanguage(language);
