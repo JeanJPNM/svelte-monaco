@@ -95,7 +95,7 @@
   });
 
   $: if ($monaco && theme) syncTheme($monaco, theme);
-  $: if ($editor) syncPath($previousPath);
+  $: if ($editor) syncPath(path);
   $: if ($editor) syncOptions(options);
   $: if ($editor) syncLanguage(language);
   $: if ($editor) valueStore.set('external', value);
