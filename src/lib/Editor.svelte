@@ -47,7 +47,6 @@
   export let language = 'text';
   export let path: string | undefined = undefined;
   export let theme: ThemeName | undefined = undefined;
-  export let line: number | undefined = undefined;
   export let options: EditorOptions = {};
   export let overrideServices: monaco.editor.IEditorOverrideServices = {};
   export let saveViewState = true;
@@ -99,7 +98,6 @@
   $: if ($editor) syncPath($previousPath);
   $: if ($editor) syncOptions(options);
   $: if ($editor) syncLanguage(language);
-  $: if ($editor) syncLine(line);
   $: if ($editor) valueStore.set('external', value);
 
   function syncPath(...deps: unknown[]) {
@@ -119,11 +117,6 @@
 
   function syncLanguage(...deps: unknown[]) {
     $monaco?.editor.setModelLanguage($editor.getModel()!, language);
-  }
-
-  function syncLine(...deps: unknown[]) {
-    // reason for undefined check: https://github.com/suren-atoyan/monaco-react/pull/188
-    if (line !== undefined) $editor.revealLine(line);
   }
 
   function syncTheme(monaco: Monaco, theme: string) {
