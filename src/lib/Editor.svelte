@@ -27,11 +27,6 @@
 
   type EditorOptions = monaco.editor.IStandaloneEditorConstructionOptions;
   type CodeEditor = monaco.editor.IStandaloneCodeEditor;
-
-  const viewStates = new Map<
-    string | undefined,
-    monaco.editor.ICodeEditorViewState | null
-  >();
 </script>
 
 <script lang="ts">
@@ -53,6 +48,11 @@
   export let keepCurrentModel = false;
   let className = '';
   export { className as class };
+
+  export const viewStates = new Map<
+    string | undefined,
+    monaco.editor.ICodeEditorViewState | null
+  >();
 
   const dispatch = createEventDispatcher<EventMap>();
 
@@ -188,6 +188,7 @@
       if (saveViewState) viewStates.set(path, editor.saveViewState());
     } else {
       editor.getModel()?.dispose();
+      editor.getModel()?.isAttachedToEditor();
     }
     editor.dispose();
   }
