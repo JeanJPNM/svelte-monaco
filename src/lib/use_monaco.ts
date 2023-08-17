@@ -20,7 +20,7 @@ export function useMonaco(): Readable<Monaco | null> {
       cancelable
         .then((monaco) => set(monaco))
         .catch((error) => {
-          if (error?.type !== 'cancellation') {
+          if (isCancelationError(error)) {
             console.error('Monaco initialization: error:', error);
           }
         });
@@ -30,4 +30,16 @@ export function useMonaco(): Readable<Monaco | null> {
   });
 
   return store;
+}
+
+// the current type of the monaco loader cancellation
+// error is spelled with a single "l", but checking for a different spelling
+// might prevent this from breaking in the next versions
+// of the loader
+function isCancelationError(error: unknown) {
+  if (typeof error !== 'object' || !error) return false;
+  if ('type' in error) {
+    return error.type === 'cancelation' || error.type === 'cancellation';
+  }
+  return false;
 }
