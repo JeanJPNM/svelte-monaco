@@ -240,7 +240,7 @@
 
 <style>
   .container {
-    width: var(--svelte-monaco-width);
-    height: var(--svelte-monaco-height);
+    width: var(--svelte-monaco-width, 100%);
+    height: var(--svelte-monaco-height, 100%);
   }
 </style>
