@@ -188,7 +188,6 @@
       if (saveViewState) viewStates.set(path, editor.saveViewState());
     } else {
       editor.getModel()?.dispose();
-      editor.getModel()?.isAttachedToEditor();
     }
     editor.dispose();
   }
