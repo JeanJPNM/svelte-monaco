@@ -1,5 +1,6 @@
+import Editor from './Editor.svelte';
+export default Editor;
 export { default as loader } from '@monaco-editor/loader';
-export { default as Editor } from './Editor.svelte';
 export type {
   EditorChangeEvent,
   EditorReadyEvent,
