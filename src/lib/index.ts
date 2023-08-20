@@ -12,6 +12,6 @@ export type {
   DiffEditorReadyEvent
 } from './DiffEditor.svelte';
 export type { Monaco } from './types.js';
-export { useMonaco } from './use_monaco.js';
+export { useMonacoLoader } from './use_monaco_loader.js';
 export { getMonacoEditorContext, setMonacoEditorContext } from './context';
 export type { MonacoEditorContext } from './context';

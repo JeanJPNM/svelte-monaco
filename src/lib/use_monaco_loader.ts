@@ -1,9 +1,11 @@
 import type { Monaco } from '$lib/types.js';
-import loader from '@monaco-editor/loader';
+import type monacoLoader from '@monaco-editor/loader';
 import { onMount } from 'svelte';
 import { writable, type Readable, get } from 'svelte/store';
 
-export function useMonaco(): Readable<Monaco | null> {
+export function useMonacoLoader(
+  loader: typeof monacoLoader
+): Readable<Monaco | null> {
   const getMonaco = loader.__getMonacoInstance;
 
   const store = writable(getMonaco(), (set) => {
