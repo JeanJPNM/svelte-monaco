@@ -28,8 +28,8 @@
   import type { Monaco, ThemeName } from './types.js';
   import { getOrCreateModel, setEditorValue } from './utils.js';
   import { multiModeStore, writablePrevious } from './stores.js';
-  import { useMonaco } from './use_monaco.js';
   import { derived, writable, type Subscriber } from 'svelte/store';
+  import { getMonacoEditorContext } from './context.js';
 
   export let original = '';
   export let modified = '';
@@ -53,7 +53,7 @@
 
   const container = writable<HTMLElement | null>(null);
 
-  const monaco = useMonaco();
+  const { monaco } = getMonacoEditorContext();
 
   const editor = derived(
     [monaco, container],
