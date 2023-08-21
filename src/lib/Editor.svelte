@@ -37,6 +37,7 @@
   import { multiModeStore, writablePrevious } from './stores.js';
   import { getOrCreateModel, setEditorValue } from './utils.js';
   import { getMonacoEditorContext } from './context.js';
+  import { modelTracker } from './model_tracker.js';
 
   export let value = '';
   export let language = 'text';
@@ -53,6 +54,8 @@
     string | undefined,
     monaco.editor.ICodeEditorViewState | null
   >();
+
+  const usedModels = modelTracker();
 
   const dispatch = createEventDispatcher<EventMap>();
 
@@ -105,6 +108,7 @@
     const model = getOrCreateModel($monaco, value, language, path);
 
     if (model === $editor.getModel()) return;
+    usedModels.add(model);
 
     if (saveViewState) viewStates.set($previousPath, $editor.saveViewState());
     $editor.setModel(model);
@@ -138,6 +142,7 @@
 
     if (saveViewState) editor.restoreViewState(viewStates.get(path) ?? null);
 
+    usedModels.add(defaultModel);
     return editor;
   }
 
@@ -186,9 +191,10 @@
 
     if (keepCurrentModel) {
       if (saveViewState) viewStates.set(path, editor.saveViewState());
-    } else {
-      editor.getModel()?.dispose();
+      const currentModel = editor.getModel();
+      if (currentModel) usedModels.addKeepAlive(currentModel);
     }
+    usedModels.dispose();
     editor.dispose();
   }
 </script>

@@ -30,6 +30,7 @@
   import { multiModeStore, writablePrevious } from './stores.js';
   import { derived, writable, type Subscriber } from 'svelte/store';
   import { getMonacoEditorContext } from './context.js';
+  import { modelTracker } from './model_tracker.js';
 
   export let original = '';
   export let modified = '';
@@ -48,6 +49,8 @@
   export let keepCurrentModifiedModel = false;
   let className = '';
   export { className as class };
+
+  const usedModels = modelTracker();
 
   const dispatch = createEventDispatcher<EventMap>();
 
@@ -136,6 +139,7 @@
     );
 
     if (model === originalEditor.getModel()) return;
+    usedModels.add(model);
     originalEditor.setModel(model);
   }
 
@@ -150,6 +154,7 @@
     );
 
     if (model === modifiedEditor.getModel()) return;
+    usedModels.add(model);
     modifiedEditor.setModel(model);
   }
 
@@ -172,6 +177,9 @@
       modifiedLanguage || language,
       modifiedPath
     );
+
+    usedModels.add(originalModel);
+    usedModels.add(modifiedModel);
 
     editor.setModel({ original: originalModel, modified: modifiedModel });
 
@@ -220,14 +228,15 @@
       subscription.dispose();
     }
 
-    if (!keepCurrentOriginalModel) {
-      original?.dispose();
+    if (keepCurrentOriginalModel) {
+      usedModels.addKeepAlive(original);
     }
 
-    if (!keepCurrentModifiedModel) {
-      modified?.dispose();
+    if (keepCurrentModifiedModel) {
+      usedModels.addKeepAlive(modified);
     }
 
+    usedModels.dispose();
     editor.dispose();
   }
 </script>
