@@ -105,12 +105,12 @@
   });
 
   $: if ($monaco && theme) syncTheme($monaco, theme);
-  $: if ($editor) originalValueStore.set('external', original);
-  $: if ($editor) modifiedValueStore.set('external', modified);
   $: if ($editor) syncOptions(options);
   $: if ($editor) syncLanguage(language, originalLanguage, modifiedLanguage);
   $: if ($editor) syncOriginalPath(originalPath);
   $: if ($editor) syncModifiedPath(modifiedPath);
+  $: if ($editor) originalValueStore.set('external', original);
+  $: if ($editor) modifiedValueStore.set('external', modified);
 
   function syncOptions(...deps: unknown[]) {
     $editor.updateOptions(options);
